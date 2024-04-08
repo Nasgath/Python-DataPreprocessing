@@ -1,0 +1,81 @@
+import pandas as pd
+import numpy as np
+import time
+
+def process_data_and_save():
+    # Load dataset
+    dataset = pd.read_csv("Inputdata - Sheet1.csv")
+    
+    # Remove unwanted columns
+    unwanted_columns = ['Delivery status', 'Delivery level', 'Impressions', 'CPM (cost per 1,000 impressions)', 'Reach', 'Frequency', 'Video plays', 'Video plays at 100%', 'CTR (all)', 'Result Type', 'Purchase ROAS (return on ad spend)', 'Attribution setting', 'Cost per result', 'Reporting starts', 'Reporting ends']
+    data = dataset.drop(columns=unwanted_columns)
+    
+    # Handle missing values
+    df = data.fillna(0)
+    
+    # Function to convert date to desired format
+    def format_date(date):
+        return pd.to_datetime(date).strftime("%d %b (%a)")
+
+    # User input
+    input_column = input("Enter the column name to search as 'Campaign name' or 'Day': ")
+    input_value = input("Enter the value to search in the Column: ")
+
+    # Check if the input column exists in DataFrame
+    if input_column in df.columns:
+        # Filter DataFrame based on input column and value
+        filtered_df = df[df[input_column] == input_value]
+
+        # Check if any row matches the input value
+        if not filtered_df.empty:
+            # Convert 'Day' column to datetime objects
+            filtered_df['Date'] = filtered_df['Day'].apply(format_date)
+            
+            # Additional data transformations
+            filtered_df['Campaign Name'] = filtered_df['Campaign name']
+            filtered_df['AD Spent'] = filtered_df['Amount spent (INR)']
+            filtered_df['No.of Leads'] = filtered_df['Results']
+            
+            filtered_df['Cost per Lead'] = filtered_df['Amount spent (INR)'] / filtered_df['Results'] # cost per head
+            filtered_df['Cost per Lead'].replace([np.inf, -np.inf], np.nan, inplace=True)  # Replace inf with NaN
+            filtered_df['Cost per Lead'].fillna(0, inplace=True)  # Replace NaN with 0
+
+            filtered_df['CTR'] = filtered_df['CTR (link click-through rate)']
+
+        
+            filtered_df['Link Click'] = filtered_df['Link clicks']
+
+
+            filtered_df['LP Views'] = filtered_df['Landing page views']
+
+            filtered_df['Member passed'] = filtered_df['Landing page views'] / filtered_df['Link clicks'] * 100
+            filtered_df['Member passed'].replace([np.inf, -np.inf], np.nan, inplace=True)  # Replace inf with NaN
+            filtered_df['Member passed'].fillna(0, inplace=True)  # Replace NaN with 0
+
+
+            filtered_df['LP Conversion %'] = filtered_df['Results'] / filtered_df['Landing page views'] * 100 
+            filtered_df['LP Conversion %'].replace([np.inf, -np.inf], np.nan, inplace=True)  # Replace inf with NaN
+            filtered_df['LP Conversion %'].fillna(0, inplace=True)  # Replace NaN with 0
+
+            # Select output columns
+            output_columns = ['Date', 'Campaign Name', 'AD Spent', 'No.of Leads', 'Cost per Lead', 'CTR', 'Link Click', 'LP Views', 'Member passed', 'LP Conversion %']
+            output_df = filtered_df[output_columns]
+
+            # Print output DataFrame
+            print(output_df.to_string(index=False))
+            
+            # Generate timestamp for filename
+            timestamp = time.strftime("%Y%m%d%H%M%S")
+            output_filename = f'output_data_{timestamp}.csv'
+            
+            # Save output DataFrame to CSV
+            output_df.to_csv(output_filename, index=False)
+            print(f"Output data file is downloaded as '{output_filename}'")
+        else:
+            print("No record found.")
+    else:
+        print("Please type the name correctly as 'Campaign name' or 'Day'")
+
+# Call the function to execute the code
+process_data_and_save()
+
